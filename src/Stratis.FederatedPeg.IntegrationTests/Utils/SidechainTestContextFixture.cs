@@ -45,13 +45,13 @@ namespace Stratis.FederatedPeg.IntegrationTests.Utils
             Assert.Equal(this.Context.scriptAndAddresses.payToMultiSig.PaymentScript, coinbase.Outputs[0].ScriptPubKey);
 
             // Send significant funds to sidechain user
-            string sidechainAddress = this.Context.GetAddress(this.Context.SideUser);
+            string sidechainAddress = this.Context.GetUnusedAddress(this.Context.SideUser);
             await this.Context.DepositToSideChain(this.Context.MainUser, 100_000, sidechainAddress);
             TestHelper.WaitLoop(() => this.Context.FedMain1.CreateRPCClient().GetRawMempool().Length == 1);
             TestHelper.MineBlocks(this.Context.FedMain1, 15);
 
             // Sidechain user has balance - transfer complete
-            Assert.Equal(new Money(25, MoneyUnit.BTC), this.Context.GetBalance(this.Context.SideUser));
+            Assert.Equal(new Money(100_000, MoneyUnit.BTC), this.Context.GetBalance(this.Context.SideUser));
 
             this.hasInit = true;
         }

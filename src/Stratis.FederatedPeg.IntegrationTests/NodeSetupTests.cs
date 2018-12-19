@@ -89,7 +89,7 @@ namespace Stratis.FederatedPeg.IntegrationTests
                 Assert.Equal(context.scriptAndAddresses.payToMultiSig.PaymentScript, coinbase.Outputs[0].ScriptPubKey);
 
                 // Send to sidechain
-                string sidechainAddress = context.GetAddress(context.SideUser);
+                string sidechainAddress = context.GetUnusedAddress(context.SideUser);
                 await context.DepositToSideChain(context.MainUser, 25, sidechainAddress);
                 TestHelper.WaitLoop(() => context.FedMain1.CreateRPCClient().GetRawMempool().Length == 1);
                 TestHelper.MineBlocks(context.FedMain1, 15);
@@ -98,7 +98,7 @@ namespace Stratis.FederatedPeg.IntegrationTests
                 Assert.Equal(new Money(25, MoneyUnit.BTC), context.GetBalance(context.SideUser));
 
                 // Send funds back to the main chain
-                string mainchainAddress = context.GetAddress(context.MainUser);
+                string mainchainAddress = context.GetUnusedAddress(context.MainUser);
                 Money currentMainUserBalance = context.GetBalance(context.MainUser);
                 await context.WithdrawToMainChain(context.SideUser, 24, mainchainAddress);
                 int currentSideHeight = context.SideUser.FullNode.Chain.Tip.Height;

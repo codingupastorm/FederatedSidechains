@@ -22,7 +22,9 @@ using Stratis.Bitcoin.Networks;
 using Stratis.FederatedPeg.Features.FederationGateway;
 using Stratis.FederatedPeg.Features.FederationGateway.Models;
 using Stratis.Sidechains.Networks;
+using Stratis.SmartContracts.CLR;
 using Stratis.SmartContracts.Core;
+using Stratis.SmartContracts.Core.State;
 
 namespace Stratis.FederatedPeg.IntegrationTests.Utils
 {
@@ -331,9 +333,34 @@ namespace Stratis.FederatedPeg.IntegrationTests.Utils
             return JsonConvert.DeserializeObject<BuildCreateContractTransactionResponse>(result);
         }
 
-        public string GetAddress(CoreNode node)
+        public string GetUnusedAddress(CoreNode node)
         {
             return node.FullNode.WalletManager().GetUnusedAddress(new WalletAccountReference(WalletName, WalletAccount)).Address;
+        }
+
+        public IList<AddressBalance> GetAddressBalances(CoreNode node)
+        {
+            IEnumerable<IGrouping<HdAddress, UnspentOutputReference>> allSpendable = node.FullNode.WalletManager().GetSpendableTransactionsInWallet(WalletName).GroupBy(x => x.Address);
+            var result = new List<AddressBalance>();
+            foreach (IGrouping<HdAddress, UnspentOutputReference> grouping in allSpendable)
+            {
+                result.Add(new AddressBalance
+                {
+                    Address = grouping.Key.Address,
+                    Balance = grouping.Sum(x => x.Transaction.SpendableAmount(false))
+                });
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Note this is only going to work on smart contract enabled (aka sidechain) nodes
+        /// </summary>
+        public byte[] GetContractCode(CoreNode node, string address)
+        {
+            IStateRepositoryRoot stateRoot = node.FullNode.NodeService<IStateRepositoryRoot>();
+            return stateRoot.GetCode(address.ToUint160(this.SideChainNetwork));
         }
 
         private void ApplyFederationIPs(CoreNode fed1, CoreNode fed2, CoreNode fed3)
