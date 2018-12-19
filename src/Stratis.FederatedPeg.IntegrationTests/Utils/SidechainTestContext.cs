@@ -11,6 +11,9 @@ using Flurl;
 using Flurl.Http;
 using NBitcoin;
 using Newtonsoft.Json;
+using Stratis.Bitcoin.Features.SmartContracts;
+using Stratis.Bitcoin.Features.SmartContracts.Models;
+using Stratis.Bitcoin.Features.SmartContracts.ReflectionExecutor.Consensus.Rules;
 using Stratis.Bitcoin.Features.Wallet;
 using Stratis.Bitcoin.Features.Wallet.Models;
 using Stratis.Bitcoin.IntegrationTests.Common;
@@ -19,6 +22,7 @@ using Stratis.Bitcoin.Networks;
 using Stratis.FederatedPeg.Features.FederationGateway;
 using Stratis.FederatedPeg.Features.FederationGateway.Models;
 using Stratis.Sidechains.Networks;
+using Stratis.SmartContracts.Core;
 
 namespace Stratis.FederatedPeg.IntegrationTests.Utils
 {
@@ -296,6 +300,35 @@ namespace Stratis.FederatedPeg.IntegrationTests.Utils
                 {
                     hex = walletBuildTxModel.Hex
                 });
+        }
+
+        public async Task<BuildCreateContractTransactionResponse> SendCreateContractTransaction(CoreNode node, 
+            byte[] contractCode,
+            double amount,
+            string sender,
+            string[] parameters = null,
+            ulong gasLimit = SmartContractFormatRule.GasLimitMaximum / 2, // half of maximum
+            ulong gasPrice = SmartContractMempoolValidator.MinGasPrice,
+            double feeAmount = 0.01)
+        {
+            HttpResponseMessage createContractResponse = await $"http://localhost:{node.ApiPort}/api"
+                .AppendPathSegment("SmartContracts/build-and-send-create")
+                .PostJsonAsync(new
+                {
+                    amount = amount.ToString(),
+                    accountName = WalletAccount,
+                    contractCode = contractCode.ToHexString(),
+                    feeAmount = feeAmount.ToString(),
+                    gasLimit = gasLimit,
+                    gasPrice = gasPrice,
+                    parameters = parameters,
+                    password = WalletPassword,
+                    Sender = sender,
+                    walletName = WalletName
+                });
+
+            string result = await createContractResponse.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<BuildCreateContractTransactionResponse>(result);
         }
 
         public string GetAddress(CoreNode node)
